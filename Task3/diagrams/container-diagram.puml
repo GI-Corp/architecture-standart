@@ -1,0 +1,37 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Container.puml
+LAYOUT_WITH_LEGEND()
+
+System_Boundary(onlineDeposits, "Онлайн депозиты MVP") {
+
+  Container(websiteFE, "Website Frontend", "React.js", "Показывает продукты и отправляет заявку на депозит")
+  Container(internetBank, "Internet Bank (Monolith)", "ASP.NET MVC 4.5", "Авторизованное оформление депозитов")
+  
+  Container(applicationsApi, "Applications API", "Spring Boot + PostgreSQL", "Прием и управление заявками")
+  Container(kafkaBridge, "Kafka Bridge", "Apache Camel", "Преобразует REST из ИБ в Kafka-сообщения")
+  Container(orchestrator, "Deposit Orchestrator", ".NET Worker", "Оркестрация: заявка → АБС → СМС")
+  Container(ratesService, "Rates Service", ".NET + MS SQL", "Управление депозитными ставками")
+  Container(backOfficeUI, "Back-Office UI", "React.js", "Интерфейс для сотрудников банка")
+  Container(smsNotifier, "SMS Notifier", ".NET", "Отправка СМС через шлюз")
+}
+
+System_Ext(abs, "АБС", "PL/SQL + Oracle\nОткрытие депозитов")
+System_Ext(kafka, "Kafka Cluster", "Message Bus")
+System_Ext(smsGateway, "СМС-шлюз", "Интеграция с телеком-оператором")
+
+Rel(websiteFE, applicationsApi, "POST заявки (неавторизованный клиент)")
+Rel(internetBank, kafkaBridge, "POST заявки (авторизованный клиент)")
+Rel(kafkaBridge, kafka, "Публикация событий (new application)")
+Rel(applicationsApi, kafka, "Публикация событий (new application)")
+
+Rel(kafka, orchestrator, "Consume заявок")
+
+Rel(orchestrator, abs, "Открытие депозита (PL/SQL)")
+Rel(orchestrator, smsNotifier, "Запрос на отправку СМС")
+
+Rel(smsNotifier, smsGateway, "POST /send-sms")
+
+Rel(kafka, backOfficeUI, "Consume событий заявок")
+Rel_Back(backOfficeUI, abs, "Взаимодействие с АБС")
+
+@enduml
