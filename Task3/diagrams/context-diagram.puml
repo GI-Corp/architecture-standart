@@ -1,0 +1,28 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Context.puml
+LAYOUT_WITH_LEGEND()
+
+Person(unauthClient, "Клиент (неавторизованный)", "Посетитель сайта банка")
+Person(authClient, "Клиент (авторизованный)", "Пользователь интернет-банка")
+Person(callCenterOp, "Оператор кол-центра", "Обрабатывает заявки клиентов")
+Person(boManager, "Сотрудник бэк-офиса", "Открывает депозиты в АБС")
+
+System(onlineDeposits, "Система онлайн-заявок на депозиты", "Обрабатывает заявки с сайта и ИБ, взаимодействует с АБС")
+System_Ext(website, "Сайт", "Информирует клиентов и принимает заявки")
+System_Ext(internetBanking, "Интернет-банк", "Позволяет подать заявку на депозит")
+System_Ext(abs, "АБС", "Ведет учет вкладов, фин. операции")
+System_Ext(smsGateway, "СМС-шлюз", "Отправляет клиенту уведомления")
+System_Ext(kafka, "Kafka", "Передает сообщения между компонентами")
+System_Ext(callCenterSystem, "Система кол-центра", "Позволяет оператору работать с заявками")
+
+Rel(unauthClient, website, "Просматривает ставки, подает заявку")
+Rel(authClient, internetBanking, "Подает заявку в авторизованной зоне")
+Rel(website, onlineDeposits, "Отправка заявки (REST)")
+Rel(internetBanking, onlineDeposits, "Отправка заявки (REST / через Bridge)")
+Rel(onlineDeposits, kafka, "Публикация заявок в топик")
+Rel(kafka, callCenterSystem, "Уведомление о новой заявке")
+Rel(callCenterOp, callCenterSystem, "Обработка заявок, звонки клиентам")
+Rel(boManager, onlineDeposits, "Обрабатывает заявку через UI")
+Rel(onlineDeposits, abs, "Подтверждает депозит")
+Rel(onlineDeposits, smsGateway, "Отправляет СМС клиенту")
+@enduml
