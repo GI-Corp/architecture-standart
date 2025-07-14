@@ -1,0 +1,33 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Container.puml
+LAYOUT_TOP_DOWN()
+title C4 Container Diagram — "Передача ставок в КЦ и партнёрский КЦ"
+
+System_Boundary(bankingSystem, "Банковская система") {
+
+  Container(ratesService, "Rates Service", ".NET 7 + MS SQL", "Хранение и публикация депозитных ставок")  
+  Container(ratesApi, "Rates API", ".NET Controller", "Предоставляет ставки для систем банка (например, КЦ)")
+  Container(ratesExporter, "Rates Exporter", ".NET Worker", "Формирует CSV/JSON ставки и сохраняет в S3")
+  Container(ratesScheduler, "Cron Scheduler", "Hangfire", "Периодически триггерит экспорт ставок")
+  Container(kafkaConsumer, "Kafka Consumer", ".NET Worker", "Обрабатывает события rate.updated → триггерит экспорт")
+}
+
+System_Boundary(callCenterSys, "Система кол-центра") {
+  Container(callCenterUI, "Call Center UI", "React.js", "Интерфейс для операторов")
+  Container(callCenterBE, "Call Center Backend", "Spring Boot", "Обрабатывает REST-запросы, вызывает API ставок")
+}
+
+System_Ext(objectStorage, "Object Storage (S3-compatible)", "MinIO или Amazon S3", "Служит для хранения файлов ставок, доступен по HTTPS (pre-signed URLs)")
+
+System_Ext(partnerSystem, "Партнёрская система КЦ", "Внешняя CRM-система", "Подключается к объектному хранилищу, загружает файл ставок")
+
+Rel(callCenterUI, callCenterBE, "HTTP (внутренние вызовы)")
+Rel(callCenterBE, ratesApi, "REST GET /rates")
+Rel(ratesApi, ratesService, "Чтение из БД ставок")
+Rel(ratesScheduler, ratesExporter, "cron trigger")
+Rel(kafkaConsumer, ratesExporter, "on rate.updated")
+Rel(ratesExporter, objectStorage, "PUT CSV/JSON (актуальные ставки)")
+Rel(partnerSystem, objectStorage, "GET pre-signed file")
+Rel_Back(partnerSystem, ratesService, "URL доступа к файлам (по соглашению)")
+
+@enduml

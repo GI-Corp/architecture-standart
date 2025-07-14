@@ -1,0 +1,16 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Context.puml
+
+Person(operator, "Оператор кол-центра")
+Person(partnerOp, "Оператор партнёрского КЦ")
+System(ratesSvc, "Rates Service", "Сервис ставок (банк)")
+System(callCenter, "Система кол-центра", "React + Spring Boot")
+System_Ext(partnerCC, "Система партнёрского КЦ", "Внешняя система")
+System_Ext(objectStore, "Secure Object Storage", "S3‑совместимое хранилище")
+
+Rel(operator, callCenter, "Запрашивает ставки")
+Rel(callCenter, ratesSvc, "REST /rates")
+Rel(ratesSvc, objectStore, "PUT ставок (CSV/JSON)")
+Rel(partnerCC, objectStore, "GET файла ставок")
+Rel(partnerOp, partnerCC, "Консультирует по ставкам")
+@enduml
